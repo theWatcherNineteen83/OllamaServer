@@ -9,7 +9,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import {deleteModel, ps, pull, tags, unload} from "../api/OllamaApi.ts";
 import {useAppTheme} from "../theme/ThemeContext.tsx";
-import {Appbar, Button, Dialog, IconButton, List, Portal, ProgressBar, TextInput} from 'react-native-paper';
+import {Appbar, Button, Dialog, IconButton, List, Portal, ProgressBar, Switch, TextInput} from 'react-native-paper';
 import {OLLAMA_SERVER} from "../api/API.ts";
 import {formatFileSize} from "../utils/FileUtils.ts";
 import LoadingDialog from "../components/LoadingDialog.tsx";
@@ -17,7 +17,7 @@ import { name as appName, version } from '../../package.json';
 import {useTranslation} from "react-i18next";
 import {logger} from "../utils/LogUtils.ts";
 import {modelRecommendList} from "./ModelRecommend.ts";
-const { OllamaServiceModule } = NativeModules;
+const { OllamaConfigModule, OllamaServiceModule } = NativeModules;
 
 const SettingsPage = () => {
     const theme = useAppTheme();
@@ -53,6 +53,8 @@ const SettingsPage = () => {
     const [modelRecommendDialogVisible, setModelRecommendDialogVisible] = useState(false)
     // 下载模型session引用
     const pullSessionRef = useRef<PullSessionType | null>(null);
+    // 是否启用局域网监听
+    const [lanListeningEnabled, setLanListeningEnabled] = useState(false);
 
     const checkServerStatus = async (): Promise<boolean> => {
         try {
@@ -78,6 +80,14 @@ const SettingsPage = () => {
         }, 60000);
 
         return () => clearInterval(intervalId);
+    }, []);
+
+    useEffect(() => {
+        const loadConfig = async () => {
+            const enabled = await OllamaConfigModule.getLanListeningEnabled();
+            setLanListeningEnabled(enabled);
+        };
+        loadConfig();
     }, []);
 
     const handleServerStatus = async () => {
@@ -247,6 +257,25 @@ const SettingsPage = () => {
                             left={() => <List.Icon icon="server" />}
                             description={serverRunning ? t('serverRunning') : t('serverNotRunning')}
                             onPress={handleServerStatus}
+                        />
+                        <List.Item
+                            title={t('enableLanListening')}
+                            left={() => <List.Icon icon="lan" />}
+                            description={t('enableLanListeningDesc')}
+                            onPress={async () => {
+                                const newValue = !lanListeningEnabled;
+                                await OllamaConfigModule.setLanListeningEnabled(newValue);
+                                setLanListeningEnabled(newValue);
+                            }}
+                            right={() => (
+                                <Switch
+                                    value={lanListeningEnabled}
+                                    onValueChange={async (value) => {
+                                        await OllamaConfigModule.setLanListeningEnabled(value);
+                                        setLanListeningEnabled(value);
+                                    }}
+                                />
+                            )}
                         />
                         <List.Item
                             title={t('serverLog')}

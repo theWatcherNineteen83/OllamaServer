@@ -10,6 +10,7 @@
     <item name="colorPrimary">@color/colorPrimary</item>
     <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
     <item name="colorSurface">@color/design_default_color_surface</item>
+    <item name="android:enableOnBackInvokedCallback">true</item>
   </style>
   <style name="ResetEditText" parent="@android:style/Widget.EditText">
     <item name="android:padding">0dp</item>
@@ -17,7 +18,7 @@
     <item name="android:textColor">@android:color/black</item>
   </style>
   <style name="Theme.App.SplashScreen" parent="AppTheme">
-    <item name="android:windowBackground">@drawable/ic_launcher_background</item>
+    <item name="android:windowBackground">@color/ic_launcher_back</item>
   </style>
   <style name="CustomProgressBar" parent="Widget.Material3.LinearProgressIndicator">
     <item name="android:indeterminate">false</item>

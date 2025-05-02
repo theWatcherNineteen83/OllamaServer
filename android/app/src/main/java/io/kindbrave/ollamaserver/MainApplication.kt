@@ -15,10 +15,7 @@ import com.facebook.soloader.SoLoader
 
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
-import io.kindbrave.ollamaserver.reactpkg.FileUploadPackage
-import io.kindbrave.ollamaserver.reactpkg.HashPackage
 import io.kindbrave.ollamaserver.reactpkg.AppReactPackage
-import io.kindbrave.ollamaserver.reactpkg.OllamaServicePackage
 
 class MainApplication : Application(), ReactApplication {
 

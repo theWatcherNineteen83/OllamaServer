@@ -17,6 +17,8 @@
 
   "settings": "设置",
   "serverSettings": "服务器设置",
+  "enableLanListening": "启用外部访问",
+  "enableLanListeningDesc": "重启服务后生效。该配置可能会让Ollama服务暴露在公网中",
   "startDownload": "开始下载...",
   "serverStatus": "Ollama 服务器状态",
   "serverRunning": "Ollama 服务器正在运行",

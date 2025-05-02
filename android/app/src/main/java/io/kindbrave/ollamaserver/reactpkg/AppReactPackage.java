@@ -14,6 +14,7 @@ import java.util.List;
 import io.kindbrave.ollamaserver.module.FileUploadModule;
 import io.kindbrave.ollamaserver.module.HashModule;
 import io.kindbrave.ollamaserver.module.LogSaveModule;
+import io.kindbrave.ollamaserver.module.OllamaConfigModule;
 import io.kindbrave.ollamaserver.module.OllamaServiceModule;
 
 public class AppReactPackage implements ReactPackage {
@@ -23,6 +24,7 @@ public class AppReactPackage implements ReactPackage {
             @NonNull ReactApplicationContext reactContext) {
         List<NativeModule> modules = new ArrayList<>();
         modules.add(new OllamaServiceModule(reactContext));
+        modules.add(new OllamaConfigModule(reactContext));
         modules.add(new FileUploadModule(reactContext));
         modules.add(new HashModule(reactContext));
         modules.add(new LogSaveModule(reactContext));

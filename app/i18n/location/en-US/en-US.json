@@ -16,6 +16,8 @@
   "deleteConversationMsg": "Do you want to delete conversation",
 
   "settings": "Settings",
+  "enableLanListening": "Enable External Access",
+  "enableLanListeningDesc": "Restart service to apply. This configuration may expose the Ollama server to the public internet.",
   "serverSettings": "Server Settings",
   "startDownload": "Starting download...",
   "serverStatus": "Ollama Server Status",

@@ -9,6 +9,7 @@ import java.io.File
 import java.io.IOException
 import java.net.Socket
 import androidx.core.content.edit
+import io.kindbrave.ollamaserver.module.OllamaConfigModule
 
 class OllamaExecutor(private val context: Context) {
 
@@ -143,6 +144,9 @@ class OllamaExecutor(private val context: Context) {
 
     fun startOllamaService(): Process? {
         return try {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val lanListening = prefs.getBoolean(OllamaConfigModule.LAN_LISTENING, false)
+
             LogUtils.getInstance(context).clearLogFile()
 
             val nativeLibDir = context.applicationInfo.nativeLibraryDir
@@ -157,6 +161,8 @@ class OllamaExecutor(private val context: Context) {
             env["LD_LIBRARY_PATH"] = "$nativeLibDir:${env["LD_LIBRARY_PATH"] ?: ""}"
             env["HOME"] = homeDir
             env["OLLAMA_DEBUG"] = "1"
+            if (lanListening) env["OLLAMA_HOST"] = "0.0.0.0"
+            else env["OLLAMA_HOST"] = "127.0.0.1"
 
             processBuilder.start().also { process ->
                 Thread { consumeProcessOutput(process) }.start()
