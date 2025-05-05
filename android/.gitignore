@@ -15,4 +15,3 @@ local.properties
 # Bundle artifacts
 *.jsbundle
 /app/build/intermediates/ReactNativeVectorIcons/
-/app/src/main/assets/
