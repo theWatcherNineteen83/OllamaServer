@@ -62,7 +62,7 @@ jobs:
           chmod +x gradlew
           # Use debug keystore for CI builds (release signing needs secrets)
           ./gradlew assembleRelease \
-            -PMYAPP_RELEASE_STORE_FILE=${{ github.workspace }}/android/app/debug.keystore \
+            -PMYAPP_RELEASE_STORE_FILE=debug.keystore \
             -PMYAPP_RELEASE_STORE_PASSWORD=android \
             -PMYAPP_RELEASE_KEY_ALIAS=androiddebugkey \
             -PMYAPP_RELEASE_KEY_PASSWORD=android
