@@ -1,0 +1,54 @@
+name: Check Ollama Updates
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'  # Jeden Montag 08:00 UTC
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check latest Ollama release
+        id: ollama
+        run: |
+          LATEST=$(curl -s https://api.github.com/repos/ollama/ollama/releases/latest | python3 -c "import json,sys; print(json.load(sys.stdin)['tag_name'])")
+          echo "latest=${LATEST}" >> $GITHUB_OUTPUT
+          echo "Latest Ollama: ${LATEST}"
+
+      - name: Read our tracked version
+        id: ours
+        run: |
+          curl -s -o /tmp/version.txt https://raw.githubusercontent.com/theWatcherNineteen83/OllamaServer/master/android/app/src/main/assets/arm64-v8a/version.txt
+          OUR_VERSION="v$(cat /tmp/version.txt | tr -d '\n\r ')"
+          echo "ours=${OUR_VERSION}" >> $GITHUB_OUTPUT
+          echo "Our version: ${OUR_VERSION}"
+
+      - name: Create issue if update available
+        if: steps.ollama.outputs.latest != steps.ours.outputs.ours
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const latest = '${{ steps.ollama.outputs.latest }}';
+            const ours = '${{ steps.ours.outputs.ours }}';
+            
+            // Check if issue already exists
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['ollama-update'],
+              state: 'open'
+            });
+            
+            if (issues.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `⬆️ Ollama ${latest} verfügbar (aktuell: ${ours})`,
+                body: `Eine neue Ollama-Version ist verfügbar.\n\n- **Aktuell gebundled:** ${ours}\n- **Neue Version:** ${latest}\n- **Release:** https://github.com/ollama/ollama/releases/tag/${latest}\n\n## TODO\n1. Binary mit \`./build_ollama_android.sh ${latest}\` kompilieren\n2. \`version.txt\` updaten\n3. APK bauen und Release erstellen`,
+                labels: ['ollama-update']
+              });
+              console.log('Issue created for ' + latest);
+            } else {
+              console.log('Issue already exists');
+            }
