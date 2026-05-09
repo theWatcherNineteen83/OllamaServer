@@ -40,7 +40,7 @@ export CGO_ENABLED=1
 export CGO_CFLAGS="-target aarch64-linux-android34"
 export CGO_LDFLAGS="-target aarch64-linux-android34"
 
-go build -ldflags="-s -w" -o ollama ./cmd/ollama
+go build -ldflags="-s -w" -o ollama .
 ```
 
 ### 3. Copy to assets

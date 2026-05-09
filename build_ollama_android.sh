@@ -45,7 +45,7 @@ export CGO_ENABLED=1
 export CGO_CFLAGS="-target aarch64-linux-android34"
 export CGO_LDFLAGS="-target aarch64-linux-android34"
 
-go build -ldflags="-s -w" -o ollama ./cmd/ollama
+go build -ldflags="-s -w" -o ollama .
 
 # --- Copy arm64-v8a to assets ---
 mkdir -p "$ASSETS_DIR"
@@ -63,7 +63,7 @@ if [ "${BUILD_ARM32:-0}" = "1" ]; then
     export GOARM=7
     export CGO_CFLAGS="-target armv7a-linux-androideabi34"
     export CGO_LDFLAGS="-target armv7a-linux-androideabi34"
-    go build -ldflags="-s -w" -o ollama-arm32 ./cmd/ollama
+    go build -ldflags="-s -w" -o ollama-arm32 .
     mkdir -p "$ARM32_ASSETS_DIR"
     cp ollama-arm32 "$ARM32_ASSETS_DIR/ollama"
     echo "${OLLAMA_VERSION#v}" > "$ARM32_ASSETS_DIR/version.txt"
@@ -78,7 +78,7 @@ if [ "${BUILD_X86:-0}" = "1" ]; then
     export GOARCH=amd64
     export CGO_CFLAGS="-target x86_64-linux-android34"
     export CGO_LDFLAGS="-target x86_64-linux-android34"
-    go build -ldflags="-s -w" -o ollama-x86_64 ./cmd/ollama
+    go build -ldflags="-s -w" -o ollama-x86_64 .
     mkdir -p "$X86_ASSETS_DIR"
     cp ollama-x86_64 "$X86_ASSETS_DIR/ollama"
     echo "${OLLAMA_VERSION#v}" > "$X86_ASSETS_DIR/version.txt"
@@ -93,7 +93,7 @@ if [ "${BUILD_X86_32:-0}" = "1" ]; then
     export GOARCH=386
     export CGO_CFLAGS="-target i686-linux-android34"
     export CGO_LDFLAGS="-target i686-linux-android34"
-    go build -ldflags="-s -w" -o ollama-x86_32 ./cmd/ollama
+    go build -ldflags="-s -w" -o ollama-x86_32 .
     mkdir -p "$X86_32_ASSETS_DIR"
     cp ollama-x86_32 "$X86_32_ASSETS_DIR/ollama"
     echo "${OLLAMA_VERSION#v}" > "$X86_32_ASSETS_DIR/version.txt"
