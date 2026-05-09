@@ -1,6 +1,6 @@
 # Ollama Server
 
-[中文](./README_zh-CN.md)
+[中文](./README_zh-CN.md) · [Deutsch](./README_de-DE.md) · [Español](./README_es-ES.md) · [Français](./README_fr-FR.md) · [Italiano](./README_it-IT.md) · [Русский](./README_ru-RU.md) · [العربية](./README_ar-SA.md) · [Bahasa Indonesia](./README_id-ID.md)
 
 ## Introduction
 **Ollama Server** is a project that can start Ollama service with one click on Android devices. Without relying on Termux, it allows users to easily run large language models on Android devices.
