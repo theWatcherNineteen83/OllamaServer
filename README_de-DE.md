@@ -112,10 +112,10 @@ Basierend auf der [kimovil.com Bestseller-Liste](https://www.kimovil.com/de/best
 | 9 | **Samsung Galaxy S26 Ultra** | 12 GB | 256 GB | Premium, Snapdragon 8 Elite |
 | 10 | **POCO X8 Pro** | 8 GB | 256 GB | Beste Budget-Wahl, für 3B-Modelle |
 
-**Kurzübersicht nach RAM:**
-- **16 GB** → Mistral 7B, Llama 3.1 8B, Gemma 2 9B, Gemma 4 9B
-- **12 GB** → Llama 3.2 3B, Qwen 2.5 3B, Phi-4 Mini, Gemma 4 4B
-- **8 GB** → Llama 3.2 1B, Qwen 3 0.6/1.7B, Gemma 3 1B, Gemma 4 e2B (1,5 GB)
+**Kurzübersicht nach RAM:** *(Stand: 09.05.2026)*
+- **16 GB** → Mistral 7B, Llama 3.1 8B, Gemma 4 9B, Qwen 3.6 7B
+- **12 GB** → Llama 3.2 3B, Qwen 3.5 3B, Phi-4 Mini, Gemma 4 4B, Granite 4.1 3B, DeepSeek-R1 1.5B
+- **8 GB** → Llama 3.2 1B, Qwen 3 0.6/1.7B, Gemma 3 1B, Gemma 4 e2B (1,5 GB), MedGemma 4B
 
 ### Kompilieren aus dem Quellcode
 ```bash
