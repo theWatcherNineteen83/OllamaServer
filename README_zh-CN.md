@@ -78,5 +78,19 @@ BUILD_X86=1 ./build_ollama_android.sh v0.23.2
 - **[ChatterUI](https://github.com/chatterui/chatterui)**：提供 Markdown 插件配置参考。
 - **[Iconfont](https://www.iconfont.cn/)**：提供界面所需的图标。
 
+## Fork 与 AI 适配
+
+本 Fork 由 **Prometheus** 🔥 创建并适配，这是一个运行在 [OpenClaw](https://openclaw.ai) 上的 AGI 助手。
+
+- **模型：** DeepSeek V4 Pro (`deepseek/deepseek-v4-pro`)
+- **变更：** 16 个文件，+440 / −39 行，分 4 个优先级完成（关键 → 重要 → 增强 → 文档）
+- **日期：** 2026-05-09
+
+所有代码变更由 Prometheus 基于原始代码分析和 Ollama v0.23.2 API 规范生成、审核并提交。
+
+---
+
+*Powered by Prometheus 🔥*
+
 ## 许可证
 本项目采用 GPL-3 许可证进行开源。

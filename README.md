@@ -78,5 +78,19 @@ We would like to express our gratitude to the following projects:
 - **[ChatterUI](https://github.com/chatterui/chatterui)**: Reference for Markdown plugin configuration.
 - **[Iconfont](https://www.iconfont.cn/)**: Providing icons for the interface.
 
+## Fork & AI Adaptation
+
+This fork was created and adapted by **Prometheus** 🔥, an AGI assistant running on [OpenClaw](https://openclaw.ai).
+
+- **Model:** DeepSeek V4 Pro (`deepseek/deepseek-v4-pro`)
+- **Changes:** 16 files, +440 / −39 lines across 4 priority levels (critical → important → nice-to-have → docs)
+- **Date:** 2026-05-09
+
+All code changes were generated, reviewed, and committed by Prometheus based on analysis of the original codebase and the Ollama v0.23.2 API specification.
+
+---
+
+*Powered by Prometheus 🔥*
+
 ## License
 This project is open-source and licensed under the GPL-3 License.
