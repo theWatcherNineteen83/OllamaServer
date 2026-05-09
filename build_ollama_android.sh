@@ -36,6 +36,11 @@ rm -rf "$BUILD_DIR"
 git clone --depth 1 --branch "$OLLAMA_VERSION" https://github.com/ollama/ollama.git "$BUILD_DIR"
 cd "$BUILD_DIR"
 
+# Patch CGO: Android (bionic) integrates librt/libpthread into libc
+# Go's CGO matches both "linux" and "android" on GOOS=android,
+# so we must exclude android from the linux flags to avoid -lrt -lpthread
+sed -i 's|#cgo linux LDFLAGS: -lrt -lpthread -ldl -lstdc++ -lm|#cgo linux,!android LDFLAGS: -lrt -lpthread -ldl -lstdc++ -lm\n// #cgo android LDFLAGS: -ldl -lstdc++ -lm|' ml/backend/ggml/ggml.go
+
 # --- Build arm64-v8a ---
 export CC="$TOOLCHAIN/aarch64-linux-android34-clang"
 export CXX="$TOOLCHAIN/aarch64-linux-android34-clang++"
