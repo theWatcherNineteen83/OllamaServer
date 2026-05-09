@@ -120,13 +120,17 @@ export const tags = async (): Promise<OllamaTagResponse> => {
     return await response.json();
 };
 
-export const loadModel = async (modelName: string): Promise<LoadResponse> => {
-    const response = await fetch(`${OLLAMA_SERVER}/api/chat`, {
+export const loadModel = async (modelName: string, keepAlive: number = 3600): Promise<LoadResponse> => {
+    const response = await fetch(`${OLLAMA_SERVER}/api/generate`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ model: modelName }),
+        body: JSON.stringify({
+            model: modelName,
+            prompt: '',
+            keep_alive: keepAlive,
+        }),
     });
     if (!response.ok) {
         throw new Error(`HTTP Error: ${response.status}`);
@@ -217,22 +221,38 @@ export const deleteModel = async (modelName: string): Promise<void> => {
 }
 
 // 卸载运行模型
-export const unload = async (modelName: string): Promise<LoadResponse> => {
-    const response = await fetch(`${OLLAMA_SERVER}/api/chat`, {
+export const unload = async (modelName: string, keepAlive: number = 0): Promise<LoadResponse> => {
+    const response = await fetch(`${OLLAMA_SERVER}/api/generate`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
             model: modelName,
-            messages: [],
-            keep_alive: 0,
+            prompt: '',
+            keep_alive: keepAlive,
         }),
     });
     if (!response.ok) {
         throw new Error(`HTTP Error: ${response.status}`);
     }
     return await response.json();
+}
+
+// Embeddings (Ollama >=0.9.0)
+export const embed = async (modelName: string, input: string | string[]): Promise<number[][]> => {
+    const response = await fetch(`${OLLAMA_SERVER}/api/embed`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ model: modelName, input: input }),
+    });
+    if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.embeddings;
 }
 
 export const create = (modelName: string, files: Record<string, string>, template: string, systemPrompt: string, createResponseCallback: (response: CreateResponse) => void): Promise<void> => {

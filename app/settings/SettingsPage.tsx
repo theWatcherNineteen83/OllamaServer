@@ -17,6 +17,7 @@ import { name as appName, version } from '../../package.json';
 import {useTranslation} from "react-i18next";
 import {logger} from "../utils/LogUtils.ts";
 import {modelRecommendList} from "./ModelRecommend.ts";
+import {fetchModelRecommendations} from "./ModelLibrary.ts";
 const { OllamaConfigModule, OllamaServiceModule } = NativeModules;
 
 const SettingsPage = () => {
@@ -51,6 +52,9 @@ const SettingsPage = () => {
     const [aboutDialogVisible, setAboutDialogVisible] = useState(false)
     // 模型推荐对话框
     const [modelRecommendDialogVisible, setModelRecommendDialogVisible] = useState(false)
+    // 动态模型推荐列表
+    const [dynamicRecommendList, setDynamicRecommendList] = useState(modelRecommendList)
+    const [loadingRecommend, setLoadingRecommend] = useState(false)
     // 下载模型session引用
     const pullSessionRef = useRef<PullSessionType | null>(null);
     // 是否启用局域网监听
@@ -353,6 +357,10 @@ const SettingsPage = () => {
                             <Button onPress={() => {
                                 setDownloadModelVisible(false)
                                 setModelRecommendDialogVisible(true)
+                                setLoadingRecommend(true)
+                                fetchModelRecommendations()
+                                    .then(list => setDynamicRecommendList(list))
+                                    .finally(() => setLoadingRecommend(false))
                             }}>{t('modelRecommendMsg')}</Button>
                         </Dialog.Actions>
                         <Dialog.Actions>
@@ -520,7 +528,12 @@ const SettingsPage = () => {
                         <Dialog.Title>{t('modelRecommend')}</Dialog.Title>
                         <Dialog.ScrollArea>
                             <ScrollView>
-                                {modelRecommendList.map(model => (
+                                {loadingRecommend && (
+                                    <View style={{padding: 16, alignItems: 'center'}}>
+                                        <ActivityIndicator color={theme.colors.primary} />
+                                    </View>
+                                )}
+                                {dynamicRecommendList.map(model => (
                                     <List.Item
                                         key={model.modelName}
                                         title={model.modelName}
