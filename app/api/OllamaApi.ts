@@ -96,6 +96,21 @@ export const pull = (
     };
 };
 
+// 获取模型详情
+export const showModel = async (modelName: string): Promise<ModelInfo> => {
+    const response = await fetch(`${OLLAMA_SERVER}/api/show`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ model: modelName }),
+    });
+    if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+    }
+    return await response.json();
+};
+
 // 获取全部模型
 export const tags = async (): Promise<OllamaTagResponse> => {
     const response = await fetch(`${OLLAMA_SERVER}/api/tags`);
@@ -123,7 +138,10 @@ export const chat = (
     modelName: string,
     messages: Message[],
     chatResponseCallback:
-    (chatResponse: ChatResponse) => void
+    (chatResponse: ChatResponse) => void,
+    options?: ChatOptions,
+    stream: boolean = true,
+    format?: string,
 ): ChatSessionType => {
     const xhr = new XMLHttpRequest();
 
@@ -161,7 +179,10 @@ export const chat = (
             reject(new Error('Network Error'));
         };
 
-        xhr.send(JSON.stringify({ model: modelName, messages: messages }));
+        const requestBody: Record<string, any> = { model: modelName, messages: messages, stream: stream };
+        if (options) requestBody.options = options;
+        if (format) requestBody.format = format;
+        xhr.send(JSON.stringify(requestBody));
     });
 
     return {

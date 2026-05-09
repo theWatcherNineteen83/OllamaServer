@@ -24,8 +24,8 @@ const SettingsPage = () => {
     const { t, i18n } = useTranslation();
     const log = logger.createModuleLogger('SettingsPage');
     const navigation = useNavigation();
-    const DEEPSEEK = 'deepseek-r1:1.5b';
-    const [modelName, setModelName] = useState(DEEPSEEK);
+    const DEFAULT_MODEL = 'llama3.2:3b';
+    const [modelName, setModelName] = useState(DEFAULT_MODEL);
     const [downloadModelVisible, setDownloadModelVisible] = useState(false);
     const [startingServerDialogVisible, setStartingServerDialogVisible] = useState(false)
     const [closeServerVisible, setCloseServerVisible] = useState(false)
@@ -345,7 +345,7 @@ const SettingsPage = () => {
                             mode="outlined"
                             label={t('enterInformation')}
                             onChangeText={(text)=>{setModelName(text)}}
-                            placeholder={DEEPSEEK}
+                            placeholder={DEFAULT_MODEL}
                             defaultValue={modelName}
                             style={{ marginHorizontal: 16, marginVertical: 8 }}
                         />

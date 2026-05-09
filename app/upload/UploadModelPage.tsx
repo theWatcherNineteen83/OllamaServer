@@ -18,7 +18,7 @@ import {create} from "../api/OllamaApi.ts";
 import {useTranslation} from "react-i18next";
 import {logger} from "../utils/LogUtils.ts";
 import {getStyles} from "./UploadModelStyles.ts";
-import {DEFAULT_SYSTEM_PROMPT, DEFAULT_TEMPLATE} from "./UploadModelConst.ts";
+import {DEFAULT_SYSTEM_PROMPT, DEFAULT_TEMPLATE, MODEL_TEMPLATES} from "./UploadModelConst.ts";
 
 const UploadModelPage = () => {
     const theme = useAppTheme();
@@ -159,6 +159,19 @@ const UploadModelPage = () => {
                             left={() => <List.Icon icon="information" />}
                             titleStyle={{flex: 1}}
                             style={{alignItems: 'flex-start'}}
+                        />
+                        <List.Item
+                            title={t('templatePreset')}
+                            description={t('templatePresetDesc')}
+                            left={() => <List.Icon icon="file-code" />}
+                            onPress={() => {
+                                // Auto-detect template from model name
+                                const modelLower = modelName.toLowerCase()
+                                if (modelLower.includes('llama')) setTemplate(MODEL_TEMPLATES.llama)
+                                else if (modelLower.includes('mistral') || modelLower.includes('mixtral')) setTemplate(MODEL_TEMPLATES.mistral)
+                                else if (modelLower.includes('gemma') || modelLower.includes('phi')) setTemplate(MODEL_TEMPLATES.gemma)
+                                else setTemplate(MODEL_TEMPLATES.chatml)
+                            }}
                         />
                         <TextInput
                             mode="outlined"

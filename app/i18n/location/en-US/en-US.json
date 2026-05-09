@@ -72,5 +72,7 @@
   "template": "Template",
   "systemPrompt": "System Prompt",
   "stop": "Stop",
-  "advancedSettingsWarn": "If you don't know what the following parameters are, there is no need to modify them."
+  "advancedSettingsWarn": "If you don't know what the following parameters are, there is no need to modify them.",
+  "templatePreset": "Auto-detect Template",
+  "templatePresetDesc": "Detect best template from model name"
 }

@@ -4,6 +4,7 @@ interface ModelDetails {
     families: string[] | null;
     parameter_size: string;
     quantization_level: string;
+    parent_model?: string;
 }
 
 interface OllamaRunningModel {
