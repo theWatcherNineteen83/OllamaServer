@@ -110,9 +110,9 @@ Based on [kimovil.com bestseller list](https://www.kimovil.com/de/beste-handys-b
 | 10 | **POCO X8 Pro** | 8 GB | 256 GB | Best budget choice, runs 3B models |
 
 **Quick guide by RAM:**
-- **16 GB** → Mistral 7B, Llama 3.1 8B, Gemma 2 9B
-- **12 GB** → Llama 3.2 3B, Qwen 2.5 3B, Phi-4 Mini
-- **8 GB** → Llama 3.2 1B, Qwen 3 1.7B, Gemma 3 1B
+- **16 GB** → Mistral 7B, Llama 3.1 8B, Gemma 2 9B, Gemma 4 9B
+- **12 GB** → Llama 3.2 3B, Qwen 2.5 3B, Phi-4 Mini, Gemma 4 4B
+- **8 GB** → Llama 3.2 1B, Qwen 3 0.6/1.7B, Gemma 3 1B, Gemma 4 e2B (1.5 GB)
 
 ### Building from source
 ```bash
