@@ -92,6 +92,28 @@ The app + ollama server overhead is **~200–400 MB**. Add the model size:
 - 32-bit ARM (armeabi-v7a) devices typically have ≤3 GB RAM, making them unsuitable for anything beyond 0.5B models.
 - x86 Android devices (e.g., some ASUS Zenfones, Intel-based tablets) are not supported.
 
+### Recommended Devices *(Stand: 09.05.2026)*
+
+Based on [kimovil.com bestseller list](https://www.kimovil.com/de/beste-handys-bestseller), ranked by Ollama suitability (RAM first, then CPU speed):
+
+| Rank | Model | RAM | Storage | CPU / Notes |
+|------|-------|-----|---------|-------------|
+| 🥇 | **realme GT8 Pro** | 16 GB | 512 GB | Best choice — 16 GB runs 8B–11B models |
+| 🥈 | **OnePlus 15** | 12 GB | 256 GB | Snapdragon 8 Elite, fastest CPU |
+| 🥉 | **POCO F8 Ultra** | 12 GB | 256 GB | Best price-performance for 12 GB |
+| 4 | **Xiaomi 17** | 12 GB | 256 GB | Snapdragon 8 Elite |
+| 5 | **realme GT 7** | 12 GB | 256 GB | Dimensity 9300+ |
+| 6 | **OnePlus 15R** | 12 GB | 256 GB | Snapdragon 8 Gen 3 |
+| 7 | **POCO F8 Pro** | 12 GB | 256 GB | Budget flagship |
+| 8 | **POCO X8 Pro Max** | 12 GB | 256 GB | Cheapest 12 GB entry point |
+| 9 | **Samsung Galaxy S26 Ultra** | 12 GB | 256 GB | Premium, Snapdragon 8 Elite |
+| 10 | **POCO X8 Pro** | 8 GB | 256 GB | Best budget choice, runs 3B models |
+
+**Quick guide by RAM:**
+- **16 GB** → Mistral 7B, Llama 3.1 8B, Gemma 2 9B
+- **12 GB** → Llama 3.2 3B, Qwen 2.5 3B, Phi-4 Mini
+- **8 GB** → Llama 3.2 1B, Qwen 3 1.7B, Gemma 3 1B
+
 ### Building from source
 ```bash
 # Prerequisites: Node 18+, Android NDK r26+, Go 1.22+
