@@ -54,7 +54,23 @@ echo "${OLLAMA_VERSION#v}" > "$ASSETS_DIR/version.txt"
 
 echo "✅ arm64: $ASSETS_DIR/ollama ($(du -h "$ASSETS_DIR/ollama" | cut -f1))"
 
-# --- Also build x86_64 for emulator (optional) ---
+# --- Optional: build armeabi-v7a (32-bit ARM) ---
+if [ "${BUILD_ARM32:-0}" = "1" ]; then
+    ARM32_ASSETS_DIR="$SCRIPT_DIR/android/app/src/main/assets/armeabi-v7a"
+    export CC="$TOOLCHAIN/armv7a-linux-androideabi34-clang"
+    export CXX="$TOOLCHAIN/armv7a-linux-androideabi34-clang++"
+    export GOARCH=arm
+    export GOARM=7
+    export CGO_CFLAGS="-target armv7a-linux-androideabi34"
+    export CGO_LDFLAGS="-target armv7a-linux-androideabi34"
+    go build -ldflags="-s -w" -o ollama-arm32 ./cmd/ollama
+    mkdir -p "$ARM32_ASSETS_DIR"
+    cp ollama-arm32 "$ARM32_ASSETS_DIR/ollama"
+    echo "${OLLAMA_VERSION#v}" > "$ARM32_ASSETS_DIR/version.txt"
+    echo "✅ arm32: $ARM32_ASSETS_DIR/ollama ($(du -h "$ARM32_ASSETS_DIR/ollama" | cut -f1))"
+fi
+
+# --- Optional: build x86_64 for emulator ---
 if [ "${BUILD_X86:-0}" = "1" ]; then
     X86_ASSETS_DIR="$SCRIPT_DIR/android/app/src/main/assets/x86_64"
     export CC="$TOOLCHAIN/x86_64-linux-android34-clang"
@@ -67,6 +83,21 @@ if [ "${BUILD_X86:-0}" = "1" ]; then
     cp ollama-x86_64 "$X86_ASSETS_DIR/ollama"
     echo "${OLLAMA_VERSION#v}" > "$X86_ASSETS_DIR/version.txt"
     echo "✅ x86_64: $X86_ASSETS_DIR/ollama ($(du -h "$X86_ASSETS_DIR/ollama" | cut -f1))"
+fi
+
+# --- Optional: build x86 (32-bit) for emulator ---
+if [ "${BUILD_X86_32:-0}" = "1" ]; then
+    X86_32_ASSETS_DIR="$SCRIPT_DIR/android/app/src/main/assets/x86"
+    export CC="$TOOLCHAIN/i686-linux-android34-clang"
+    export CXX="$TOOLCHAIN/i686-linux-android34-clang++"
+    export GOARCH=386
+    export CGO_CFLAGS="-target i686-linux-android34"
+    export CGO_LDFLAGS="-target i686-linux-android34"
+    go build -ldflags="-s -w" -o ollama-x86_32 ./cmd/ollama
+    mkdir -p "$X86_32_ASSETS_DIR"
+    cp ollama-x86_32 "$X86_32_ASSETS_DIR/ollama"
+    echo "${OLLAMA_VERSION#v}" > "$X86_32_ASSETS_DIR/version.txt"
+    echo "✅ x86: $X86_32_ASSETS_DIR/ollama ($(du -h "$X86_32_ASSETS_DIR/ollama" | cut -f1))"
 fi
 
 # --- Cleanup ---
