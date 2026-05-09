@@ -61,6 +61,8 @@ const SettingsPage = () => {
     const [lanListeningEnabled, setLanListeningEnabled] = useState(false);
     // keep_alive 时间 (秒)
     const [keepAlive, setKeepAlive] = useState('3600');
+    // context length (tokens) for KV cache tuning
+    const [contextLength, setContextLength] = useState('2048');
 
     const checkServerStatus = async (): Promise<boolean> => {
         try {
@@ -92,6 +94,8 @@ const SettingsPage = () => {
         const loadConfig = async () => {
             const enabled = await OllamaConfigModule.getLanListeningEnabled();
             setLanListeningEnabled(enabled);
+            const ctxLen = await OllamaConfigModule.getContextLength();
+            setContextLength(String(ctxLen));
         };
         loadConfig();
     }, []);
@@ -333,6 +337,33 @@ const SettingsPage = () => {
                                         />
                                     )}
                                 />
+                                <List.Item
+                                    title={t('contextLength')}
+                                    description={t('contextLengthDesc')}
+                                    left={() => <List.Icon icon="memory" />}
+                                    right={() => (
+                                        <TextInput
+                                            mode="outlined"
+                                            keyboardType="numeric"
+                                            value={contextLength}
+                                            onChangeText={(text) => {
+                                                setContextLength(text);
+                                                const val = parseInt(text, 10);
+                                                if (val >= 512) {
+                                                    OllamaConfigModule.setContextLength(val);
+                                                }
+                                            }}
+                                            style={{width: 80, height: 40}}
+                                        />
+                                    )}
+                                />
+                                {contextLength !== '2048' && (
+                                    <List.Item
+                                        title={t('contextLengthRestart')}
+                                        left={() => <List.Icon icon="information" />}
+                                        titleStyle={{color: theme.colors.primary, fontSize: 14}}
+                                    />
+                                )}
                             </View>
                         )}
                         <View>

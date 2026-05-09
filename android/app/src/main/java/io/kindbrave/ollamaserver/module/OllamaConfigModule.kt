@@ -18,6 +18,7 @@ class OllamaConfigModule(private val reactContext: ReactApplicationContext) :
         companion object {
             private const val PREFS_NAME: String = "ollama_prefs"
             const val LAN_LISTENING = "LAN_LISTENING"
+            const val CONTEXT_LENGTH = "CONTEXT_LENGTH"
         }
 
 
@@ -33,6 +34,20 @@ class OllamaConfigModule(private val reactContext: ReactApplicationContext) :
         val prefs: SharedPreferences = getReactApplicationContext()
             .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         promise.resolve(prefs.getBoolean(LAN_LISTENING, false))
+    }
+
+    @ReactMethod
+    fun setContextLength(contextLength: Int) {
+        val prefs: SharedPreferences = getReactApplicationContext()
+            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit { putInt(CONTEXT_LENGTH, contextLength) }
+    }
+
+    @ReactMethod
+    fun getContextLength(promise: Promise) {
+        val prefs: SharedPreferences = getReactApplicationContext()
+            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        promise.resolve(prefs.getInt(CONTEXT_LENGTH, 2048))
     }
 
     override fun getName(): String {

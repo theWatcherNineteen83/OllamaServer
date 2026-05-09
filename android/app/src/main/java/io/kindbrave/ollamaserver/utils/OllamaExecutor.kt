@@ -170,6 +170,10 @@ class OllamaExecutor(private val context: Context) {
             if (lanListening) env["OLLAMA_HOST"] = "0.0.0.0"
             else env["OLLAMA_HOST"] = "127.0.0.1"
 
+            // Context length: smaller = less KV cache memory
+            val contextLength = prefs.getInt(OllamaConfigModule.CONTEXT_LENGTH, 2048)
+            env["OLLAMA_CONTEXT_LENGTH"] = contextLength.toString()
+
             processBuilder.start().also { process ->
                 Thread { consumeProcessOutput(process) }.start()
             }

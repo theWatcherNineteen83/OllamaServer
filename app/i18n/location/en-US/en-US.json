@@ -76,5 +76,8 @@
   "templatePreset": "Auto-detect Template",
   "templatePresetDesc": "Detect best template from model name",
   "keepAlive": "Keep Alive (seconds)",
-  "keepAliveDesc": "How long the model stays loaded in memory after last use"
+  "keepAliveDesc": "How long the model stays loaded in memory after last use",
+  "contextLength": "Context Length (tokens)",
+  "contextLengthDesc": "Smaller values reduce RAM usage, allowing larger models on devices with limited memory. Default: 2048. Min: 512.",
+  "contextLengthRestart": "Restart the server to apply context length changes."
 }
