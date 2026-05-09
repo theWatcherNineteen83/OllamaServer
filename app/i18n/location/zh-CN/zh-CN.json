@@ -73,5 +73,7 @@
   "stop": "Stop",
   "advancedSettingsWarn": "如果你不知道下面的参数是什么，则无需修改",
   "templatePreset": "自动检测模板",
-  "templatePresetDesc": "根据模型名称自动选择最佳模板"
+  "templatePresetDesc": "根据模型名称自动选择最佳模板",
+  "keepAlive": "保持加载 (秒)",
+  "keepAliveDesc": "模型在最后一次使用后在内存中保持加载的时间"
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 # build_ollama_android.sh
-# Compiles ollama for Android arm64-v8a using the NDK.
+# Compiles ollama for Android arm64-v8a and x86_64 using the NDK.
 #
 # Prerequisites:
 #   - Android NDK r26+ installed
@@ -10,6 +10,7 @@
 # Usage:
 #   export ANDROID_NDK_HOME=$HOME/Android/Sdk/ndk/26.3.11579264
 #   ./build_ollama_android.sh [ollama_version]
+#   BUILD_X86=1 ./build_ollama_android.sh  # also build x86_64 for emulator
 #
 # Example:
 #   ./build_ollama_android.sh v0.23.2
@@ -35,7 +36,7 @@ rm -rf "$BUILD_DIR"
 git clone --depth 1 --branch "$OLLAMA_VERSION" https://github.com/ollama/ollama.git "$BUILD_DIR"
 cd "$BUILD_DIR"
 
-# --- Build ---
+# --- Build arm64-v8a ---
 export CC="$TOOLCHAIN/aarch64-linux-android34-clang"
 export CXX="$TOOLCHAIN/aarch64-linux-android34-clang++"
 export GOOS=android
@@ -46,14 +47,29 @@ export CGO_LDFLAGS="-target aarch64-linux-android34"
 
 go build -ldflags="-s -w" -o ollama ./cmd/ollama
 
-# --- Copy to assets ---
+# --- Copy arm64-v8a to assets ---
 mkdir -p "$ASSETS_DIR"
 cp ollama "$ASSETS_DIR/ollama"
 echo "${OLLAMA_VERSION#v}" > "$ASSETS_DIR/version.txt"
 
+echo "✅ arm64: $ASSETS_DIR/ollama ($(du -h "$ASSETS_DIR/ollama" | cut -f1))"
+
+# --- Also build x86_64 for emulator (optional) ---
+if [ "${BUILD_X86:-0}" = "1" ]; then
+    X86_ASSETS_DIR="$SCRIPT_DIR/android/app/src/main/assets/x86_64"
+    export CC="$TOOLCHAIN/x86_64-linux-android34-clang"
+    export CXX="$TOOLCHAIN/x86_64-linux-android34-clang++"
+    export GOARCH=amd64
+    export CGO_CFLAGS="-target x86_64-linux-android34"
+    export CGO_LDFLAGS="-target x86_64-linux-android34"
+    go build -ldflags="-s -w" -o ollama-x86_64 ./cmd/ollama
+    mkdir -p "$X86_ASSETS_DIR"
+    cp ollama-x86_64 "$X86_ASSETS_DIR/ollama"
+    echo "${OLLAMA_VERSION#v}" > "$X86_ASSETS_DIR/version.txt"
+    echo "✅ x86_64: $X86_ASSETS_DIR/ollama ($(du -h "$X86_ASSETS_DIR/ollama" | cut -f1))"
+fi
+
 # --- Cleanup ---
 rm -rf "$BUILD_DIR"
 
-echo "✅ ollama $OLLAMA_VERSION built and copied to $ASSETS_DIR"
-echo "   Binary: $ASSETS_DIR/ollama ($(du -h "$ASSETS_DIR/ollama" | cut -f1))"
-echo "   Version: $(cat "$ASSETS_DIR/version.txt")"
+echo "✅ Done. Version: $(cat "$ASSETS_DIR/version.txt")"

@@ -146,6 +146,8 @@ export const chat = (
     options?: ChatOptions,
     stream: boolean = true,
     format?: string,
+    tools?: ToolDefinition[],
+    keepAlive?: number,
 ): ChatSessionType => {
     const xhr = new XMLHttpRequest();
 
@@ -186,6 +188,8 @@ export const chat = (
         const requestBody: Record<string, any> = { model: modelName, messages: messages, stream: stream };
         if (options) requestBody.options = options;
         if (format) requestBody.format = format;
+        if (tools) requestBody.tools = tools;
+        if (keepAlive !== undefined) requestBody.keep_alive = keepAlive;
         xhr.send(JSON.stringify(requestBody));
     });
 

@@ -58,6 +58,8 @@ class OllamaExecutor(private val context: Context) {
         val assetPath = when (Build.SUPPORTED_ABIS.firstOrNull()) {
             "arm64-v8a" -> "arm64-v8a/version.txt"
             "armeabi-v7a" -> "armeabi-v7a/version.txt"
+            "x86_64" -> "x86_64/version.txt"
+            "x86" -> "x86/version.txt"
             else -> throw IOException("Unsupported ABI")
         }
 
@@ -93,6 +95,8 @@ class OllamaExecutor(private val context: Context) {
             val assetPath = when (Build.SUPPORTED_ABIS.firstOrNull()) {
                 "arm64-v8a" -> "arm64-v8a/$BINARY_NAME"
                 "armeabi-v7a" -> "armeabi-v7a/$BINARY_NAME"
+                "x86_64" -> "x86_64/$BINARY_NAME"
+                "x86" -> "x86/$BINARY_NAME"
                 else -> throw IOException("Unsupported ABI")
             }
 
@@ -133,6 +137,8 @@ class OllamaExecutor(private val context: Context) {
         val abi = when (Build.SUPPORTED_ABIS.firstOrNull()) {
             "arm64-v8a" -> "arm64-v8a"
             "armeabi-v7a" -> "armeabi-v7a"
+            "x86_64" -> "x86_64"
+            "x86" -> "x86"
             else -> throw IOException("Unsupported ABI")
         }
         return File(context.filesDir, "bin/$abi").apply {

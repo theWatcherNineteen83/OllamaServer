@@ -74,5 +74,7 @@
   "stop": "Stop",
   "advancedSettingsWarn": "If you don't know what the following parameters are, there is no need to modify them.",
   "templatePreset": "Auto-detect Template",
-  "templatePresetDesc": "Detect best template from model name"
+  "templatePresetDesc": "Detect best template from model name",
+  "keepAlive": "Keep Alive (seconds)",
+  "keepAliveDesc": "How long the model stays loaded in memory after last use"
 }

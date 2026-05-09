@@ -59,6 +59,8 @@ const SettingsPage = () => {
     const pullSessionRef = useRef<PullSessionType | null>(null);
     // 是否启用局域网监听
     const [lanListeningEnabled, setLanListeningEnabled] = useState(false);
+    // keep_alive 时间 (秒)
+    const [keepAlive, setKeepAlive] = useState('3600');
 
     const checkServerStatus = async (): Promise<boolean> => {
         try {
@@ -316,6 +318,20 @@ const SettingsPage = () => {
                                     title={t('runningModel')}
                                     left={() => <List.Icon icon="rocket-launch" />}
                                     onPress={handleRunningModel}
+                                />
+                                <List.Item
+                                    title={t('keepAlive')}
+                                    description={t('keepAliveDesc')}
+                                    left={() => <List.Icon icon="timer" />}
+                                    right={() => (
+                                        <TextInput
+                                            mode="outlined"
+                                            keyboardType="numeric"
+                                            value={keepAlive}
+                                            onChangeText={setKeepAlive}
+                                            style={{width: 80, height: 40}}
+                                        />
+                                    )}
                                 />
                             </View>
                         )}
