@@ -43,6 +43,55 @@ The Ollama service started by **Ollama Server** is no different from that starte
 2. Install the APK on your Android device (arm64-v8a).
 3. Open the app and start the Ollama service with one click.
 
+## System Requirements
+
+### Android Version
+| Requirement | Value |
+|------------|-------|
+| **Minimum Android** | 9.0 (Pie, API 28) |
+| **Target SDK** | 28 (upgraded from original; Play Store requires ≥34) |
+| **Compile SDK** | 35 |
+
+Android 9 (2018) or newer is required. Devices running Android 8 or older are **not supported**.
+
+### CPU Architecture
+| Architecture | Supported | Notes |
+|---|---|---|
+| **arm64-v8a** | ✅ Yes | All modern 64-bit phones (2015+) |
+| **armeabi-v7a** | ⚠️ Build-only | Not included in APK split; binary not bundled. Needs NDK build and split config change. |
+| **x86_64** | ⚠️ Emulator-only | For Android Emulator. Use `BUILD_X86=1 ./build_ollama_android.sh`. |
+| **x86** | ❌ No | Not supported. |
+
+> **In practice:** The APK runs on virtually all Android phones from 2018 onwards (Snapdragon 835 and newer, all 64-bit ARM chips).
+
+### RAM (Memory)
+The memory requirement depends primarily on the model you run — not the app itself.
+
+The app + ollama server overhead is **~200–400 MB**. Add the model size:
+
+| Model | Size | Min. Device RAM |
+|-------|------|-----------------|
+| qwen2.5:0.5b / qwen3:0.6b | ~400 MB | **3 GB** |
+| llama3.2:1b / gemma3:1b | ~0.8–1.3 GB | **4 GB** |
+| qwen3:1.7b / phi4-mini:3.8b | ~1–2.2 GB | **6 GB** |
+| llama3.2:3b | ~2 GB | **6 GB** |
+| mistral:7b | ~4.1 GB | **8 GB** |
+
+**Recommendation:** 6 GB RAM or more for a comfortable experience with 1B–3B models. 8 GB for 7B models.
+
+> ⚠️ Running models close to your device's RAM limit will cause Android to kill the service or the app.
+
+### Other
+- **Storage:** ~2–5 GB free (for the app, ollama binary, and model files)
+- **Internet:** Required only for downloading models (pull)
+- **GPU:** Not used (CPU inference only)
+
+### Backward Compatibility Notes
+- The APK is built **only for arm64-v8a**. Adding `armeabi-v7a` (32-bit) requires compiling the ollama binary with `GOARCH=arm` in the NDK and adding `"armeabi-v7a"` to the `splits.abi.include` list in `android/app/build.gradle`.
+- `targetSdkVersion 28` is below the Google Play Store minimum (34). To publish on Play Store, update `targetSdkVersion` to `34` in `android/build.gradle`.
+- 32-bit ARM (armeabi-v7a) devices typically have ≤3 GB RAM, making them unsuitable for anything beyond 0.5B models.
+- x86 Android devices (e.g., some ASUS Zenfones, Intel-based tablets) are not supported.
+
 ### Building from source
 ```bash
 # Prerequisites: Node 18+, Android NDK r26+, Go 1.22+
