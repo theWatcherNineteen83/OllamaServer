@@ -71,8 +71,15 @@ jobs:
         if: env.SKIP_BUILD != 'true'
         run: |
           VERSION=$(cat package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[",]//g' | tr -d ' ')
-          cp android/app/build/outputs/apk/release/app-release.apk \
-             "OllamaServer-v${VERSION}.apk"
+          # Find the APK (output path may vary with Gradle/AGP version)
+          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" 2>/dev/null | head -1)
+          if [ -z "$APK_PATH" ]; then
+            echo "ERROR: No APK found!"
+            find android/app/build -name "*.apk" 2>/dev/null || echo "No APK files anywhere in build dir"
+            exit 1
+          fi
+          cp "$APK_PATH" "OllamaServer-v${VERSION}.apk"
+          echo "Copied: $APK_PATH -> OllamaServer-v${VERSION}.apk"
 
       - name: Upload APK artifact
         if: env.SKIP_BUILD != 'true'
