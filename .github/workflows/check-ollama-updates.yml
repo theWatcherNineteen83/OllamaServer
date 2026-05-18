@@ -24,8 +24,7 @@ jobs:
         id: ours
         run: |
           curl -s -o /tmp/version.txt https://raw.githubusercontent.com/theWatcherNineteen83/OllamaServer/master/android/app/src/main/assets/arm64-v8a/version.txt
-          OUR_VERSION="v$(cat /tmp/version.txt | tr -d '
- ')"
+          OUR_VERSION="v$(cat /tmp/version.txt | tr -d '\n\r ')"
           echo "ours=${OUR_VERSION}" >> $GITHUB_OUTPUT
           echo "Our version: ${OUR_VERSION}"
 
@@ -37,7 +36,6 @@ jobs:
             const latest = '${{ steps.ollama.outputs.latest }}';
             const ours = '${{ steps.ours.outputs.ours }}';
             
-            // Check if issue already exists
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -49,17 +47,8 @@ jobs:
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title: `⬆️ Ollama ${latest} verfügbar (aktuell: ${ours})`,
-                body: `Eine neue Ollama-Version ist verfügbar.
-
-- **Aktuell gebundled:** ${ours}
-- **Neue Version:** ${latest}
-- **Release:** https://github.com/ollama/ollama/releases/tag/${latest}
-
-## TODO
-1. Binary mit \`./build_ollama_android.sh ${latest}\` kompilieren
-2. \`version.txt\` updaten
-3. APK bauen und Release erstellen`,
+                title: `Ollama ${latest} available (bundled: ${ours})`,
+                body: `New Ollama release available.\n\n- **Bundled:** ${ours}\n- **Latest:** ${latest}\n- **Release:** https://github.com/ollama/ollama/releases/tag/${latest}\n\n## TODO\n1. Compile binary: \`./build_ollama_android.sh ${latest}\`\n2. Update \`version.txt\`\n3. Build APK and create release`,
                 labels: ['ollama-update']
               });
               console.log('Issue created for ' + latest);
