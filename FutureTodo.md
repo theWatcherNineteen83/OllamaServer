@@ -45,8 +45,9 @@ Lokal (Alternative) benötigt: Go 1.26, CMake ≥ 3.24, Ninja, `zstd`, NDK
 
 ```bash
 export NDK=$ANDROID_NDK_ROOT   # .../ndk/28.0.12916984
-
-cmake -B build-android -S . \
+# Achtung: `llama/server` ist ein EIGENES CMake-Projekt (project(ollama-llama-server)).
+# llama.cpp wird per FetchContent vom gepinnten Commit geholt → Netzwerk beim Configure.
+cmake -B build-android -S llama/server \
   -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
   -DANDROID_ABI=arm64-v8a \
@@ -62,24 +63,35 @@ cmake -B build-android -S . \
 cmake --build build-android --target llama-server llama-quantize -j"$(nproc)"
 ```
 
-> **Prüfen:** Ollamas CMake-Wrapper ist für den Android-Toolchain ungetestet.
-> Falls der Top-Level-`CMakeLists.txt` bricht: Fehler notieren, ggf. minimal patchen
-> (Install-Regeln/Lizenz-Aggregation überspringen) und Patch im Repo dokumentieren.
+> **Prüfen:** Der Server-Build (`llama/server`) ist für den Android-Toolchain ungetestet.
+> Falls Configure/Build bricht: Fehler notieren, ggf. minimal patchen (z.B. Desktop-/MLX-Pfade
+> überspringen) und den Patch im Repo dokumentieren. Vulkan-/SPIRV-SDK-Pfade sind nur für
+> Desktop relevant — `-DGGML_VULKAN=OFF` vermeidet sie.
 
-### 0.3 Go-Binary (Route 2 zuerst: `GOOS=linux` + Bionic-Clang)
+### 0.3 Go-Binary — **CGO_ENABLED=0** (kein NDK-Clang nötig)
+
+**Erkenntnis aus der Quellanalyse:** Bei `CGO_ENABLED=0` greift
+`discover/native_probe_linux_nocgo.go` und liefert
+`errors.New("native GPU discovery requires cgo on Linux")` — d.h. ein Linux-Build
+**ohne** cgo ist vom Projekt vorgesehen. CPU-only braucht keine cgo-GPU-Discovery.
+Damit entfällt der NDK-Clang für den Go-Teil komplett; das Binary ist statisch (pure Go)
+und hat keine bionic-Link-Abhängigkeit.
 
 ```bash
-TC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin
-CC=$TC/aarch64-linux-android28-clang \
-CGO_ENABLED=1 GOOS=linux GOARCH=arm64 \
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
 go build -trimpath -o ollama \
-  -ldflags "-s -w -X github.com/ollama/ollama/version.Version=0.34.2" .
+  -ldflags "-s -w -X github.com/ollama/ollama/version.Version=<ref>" .
 ```
 
-**Fallback Route 1** (`GOOS=android`): erfordert Build-Tag-Patches
-(`//go:build linux` → `linux || android`) in
-`readline/term_linux.go`, `discover/native_probe_linux.go`,
-`discover/native_probe_linux_nocgo.go`. Nur falls Route 2 auf dem Gerät scheitert.
+(Verifiziert: `version/version.go` → `var Version string`, Modulpfad
+`github.com/ollama/ollama`.)
+
+**Fallbacks, nur falls der Gerätetest scheitert:**
+- (a) `CGO_ENABLED=1` + NDK-Bionic-Clang (`aarch64-linux-android28-clang`) — nötig
+  erst, wenn cgo-Funktionen (GPU-Discovery via dlopen) gebraucht werden.
+- (b) `GOOS=android`: erfordert Build-Tag-Patches (`//go:build linux` →
+  `linux || android`) in `readline/term_linux.go`, `discover/native_probe_linux.go`,
+  `discover/native_probe_linux_nocgo.go`.
 
 ### 0.4 Payload zusammensetzen
 
@@ -101,7 +113,11 @@ tar -C payload -cf - . | zstd -19 -T0 -o payload-arm64.tar.zst
 ls -lh payload-arm64.tar.zst     # Größe notieren (~80–160 MB erwartet)
 ```
 
-### 0.5 Gerätetest (Android 9+, arm64)
+> **Hinweis:** Bei CPU-Builds installiert CMake direkt nach `lib/ollama/`.
+> `OLLAMA_RUNNER_DIR` (Unterordner-Installation) wird nur für CUDA-/ROCm-Varianten
+> gesetzt — im Spike per `find payload -type f` verifizieren.
+
+### 0.5 Gerätetest — **Samsung Galaxy S9** (arm64, Android 10)
 
 ```bash
 adb push payload-arm64.tar.zst /data/local/tmp/
@@ -271,14 +287,46 @@ File(binDir, "lib/ollama/llama-quantize").setExecutable(true, false) // falls vo
 
 ---
 
-## Offene Fragen an Georg
+## Entscheidungen (Georg, 2026-09-19)
 
-1. **Testgerät:** Welches arm64-Gerät mit **Android 9+** steht für den Spike bereit?
-   (Das Meizu m2 note mit Android 5.1 kann die App wegen `minSdk 28` nicht installieren.)
-2. **GPU/Vulkan:** später gewünscht (größerer Payload, gerätespezifische Treiber)
-   oder dauerhaft CPU-only?
-3. **Größenlimit:** Sind ~150 MB APK / ~300 MB auf dem Gerät akzeptabel?
-4. **Priorität:** Jetzt starten oder erst nach anderen Themen einplanen?
+1. **Testgerät: Samsung Galaxy S9** (arm64, Android 10 → `minSdk 28` ✓).
+   Europa-Variante SM-G960F: **Exynos 9810** (Mali-G72 MP18), **4 GB RAM**.
+   → Modell-Empfehlung für Tests: 1–3 B, Q4 (RAM-Limit).
+2. **GPU: CPU-only** (Begründung unten).
+3. **Größe:** ~150 MB APK akzeptabel, aber **ressourcenschonend** ist das Ziel
+   → eine CPU-Backend-Variante, `strip`, zstd, Basislinie `armv8-a`
+   (kein `-march=armv8.2-a+i8mm` → läuft auf allen arm64-Geräten).
+4. **Priorität:** keine → Plan liegt vor, Ausführung wenn es passt.
+
+### Warum CPU-only (GPU-Bewertung)
+
+**Verbaute GPUs in ARM-Android-Smartphones:** Qualcomm **Adreno** (Snapdragon),
+ARM **Mali/Immortalis** (MediaTek, Exynos, Google Tensor), Samsung **Xclipse**
+(AMD RDNA, neuere Exynos), Imagination **PowerVR** (Nische). Dazu NPUs
+(Hexagon / MediaTek APU / Exynos NPU) — für Android von llama.cpp/Ollama praktisch
+nicht nutzbar (QNN nur Snapdragon, kein Android-NPU-Pfad in Ollama).
+
+**Datenlage (widersprüchlich → konservative Entscheidung):**
+- llama.cpp-Discussion #9464: Vulkan auf Android-GPUs (Adreno **und** Mali) mit
+  „very bad performance".
+- r/LocalLLaMA (Okt 2025, Snapdragon): „CPU with I8MM often faster than GPU",
+  mobile GPU 5–10× langsamer.
+- Gegenposition: ein Vulkan-How-to nennt 20–55 tok/s bei 1-B-Modellen auf
+  „recent Adreno or Mali"; ein Benchmark-Vergleich sieht Vulkan bei ~85–90 % nativer
+  Backends — letzteres betrifft aber **Desktop/iGPU, nicht Handys**.
+
+**Technische Gründe, warum es speziell auf dem S9 nichts bringt:**
+- Token-Decode ist **speicherbandbreiten-limitiert**; CPU und GPU teilen dasselbe
+  LPDDR → kein Bandbreitenvorteil durch die GPU.
+- Ein GPU-Vorteil entstünde nur beim Prefill/Batching, nicht beim Chat-Decode.
+- **Mali-G72 (Exynos 9810)** ist eine alte Generation mit für Vulkan-Compute wenig
+  optimierten Treibern.
+- Thermik: das Handy drosselt unter Dauerlast.
+- Ressourcen: Payload wächst (ggml-vulkan + Vulkan-Loader), 4 GB RAM bleiben knapp.
+
+**Revision-Trigger:** Sobald ein Gerät mit aktuellem Adreno/Immortalis und aktuellen
+Treibern als Testgerät da ist, lohnt ein erneuter Blick (Vulkan dann als Option,
+nie als Default).
 
 ---
 

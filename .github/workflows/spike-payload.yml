@@ -1,0 +1,111 @@
+name: Spike - Ollama payload arm64 (Android)
+
+# Phase 0 Feasibility-Spike (siehe FutureTodo.md)
+# Baut den v0.34.x-Payload (llama-server + ggml-Libs + Go-Binary) per NDK-Cross-Compile
+# und laedt ihn als Artifact hoch. Manuell starten - laeuft NICHT automatisch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ollama_ref:
+        description: 'Ollama ref (tag/branch/commit)'
+        required: true
+        default: 'v0.34.2'
+
+jobs:
+  payload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout ollama source
+        uses: actions/checkout@v5
+        with:
+          repository: ollama/ollama
+          ref: ${{ inputs.ollama_ref }}
+          path: ollama-src
+          submodules: false
+
+      - name: Set up Go 1.26
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Prepare compiler toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ninja-build zstd cmake
+          cmake --version | head -1
+          NDK=$(ls -d "$ANDROID_HOME"/ndk/* 2>/dev/null | sort -V | tail -1)
+          if [ -z "$NDK" ]; then
+            SDKMANAGER=$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -1)
+            yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+            "$SDKMANAGER" --install "ndk;28.0.12916984" >/dev/null
+            NDK="$ANDROID_HOME/ndk/28.0.12916984"
+          fi
+          echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
+          echo "NDK: $NDK"
+          ls "$NDK/build/cmake/android.toolchain.cmake"
+
+      - name: Configure payload (CMake + NDK toolchain)
+        run: |
+          cmake -B build-android -S ollama-src/llama/server -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-28 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$PWD/payload" \
+            -DBUILD_SHARED_LIBS=ON \
+            -DGGML_NATIVE=OFF \
+            -DGGML_OPENMP=OFF \
+            -DGGML_LLAMAFILE=OFF \
+            -DGGML_CPU_ALL_VARIANTS=OFF \
+            -DGGML_VULKAN=OFF \
+            -DCMAKE_C_FLAGS="-march=armv8-a" \
+            -DCMAKE_CXX_FLAGS="-march=armv8-a"
+
+      - name: Build llama-server
+        run: cmake --build build-android --target llama-server -j"$(nproc)"
+
+      - name: Install payload
+        run: |
+          cmake --install build-android --component llama-server
+          echo "--- install tree ---"
+          find payload -type f | sort
+
+      - name: Build ollama (Go, CGO off)
+        working-directory: ollama-src
+        run: |
+          mkdir -p ../payload/bin
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
+            go build -trimpath -o ../payload/bin/ollama \
+            -ldflags "-s -w -X github.com/ollama/ollama/version.Version=${{ inputs.ollama_ref }}" .
+          file ../payload/bin/ollama || true
+
+      - name: Strip (NDK llvm-strip) and inventory
+        run: |
+          STRIP="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
+          find payload -name '*.so*' -type f -exec "$STRIP" --strip-unneeded {} + || true
+          "$STRIP" --strip-unneeded payload/bin/ollama || true
+          find payload -type f -printf '%10s  %p\n' | sort -k2 | tee payload-filelist.txt
+          echo "--- total ---"
+          du -sh payload
+          echo "--- NEEDED libs of llama-server ---"
+          readelf -d payload/lib/ollama/llama-server | grep -i needed || true
+
+      - name: Package
+        run: |
+          tar -C payload -cf - . | zstd -19 -T0 -o payload-arm64.tar.zst
+          ls -lh payload-arm64.tar.zst
+          sha256sum payload-arm64.tar.zst | tee payload-arm64.tar.zst.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ollama-payload-arm64-${{ inputs.ollama_ref }}
+          path: |
+            payload-arm64.tar.zst
+            payload-arm64.tar.zst.sha256
+            payload-filelist.txt
+          retention-days: 30
