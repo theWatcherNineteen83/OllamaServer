@@ -52,20 +52,20 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Verify preinstalled Android SDK/NDK
+      - name: Verify preinstalled Android SDK/NDK, accept licenses
         run: |
           echo "ANDROID_HOME=${ANDROID_HOME:-unset}"
-          echo "ANDROID_NDK_HOME=${ANDROID_NDK_HOME:-unset}"
-          echo "ANDROID_NDK_ROOT=${ANDROID_NDK_ROOT:-unset}"
           [ -n "${ANDROID_HOME:-}" ] || { echo "ERROR: no ANDROID_HOME on runner"; exit 1; }
+          SDKMANAGER=$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | sort -V | tail -1)
+          [ -n "$SDKMANAGER" ] || { echo "ERROR: no sdkmanager found"; exit 1; }
+          # Gradle (expo-modules) refuses to auto-install missing packages
+          # unless licenses are accepted
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          # expo/RN gradle config pins this exact NDK version
+          "$SDKMANAGER" --install "ndk;28.0.12916984" >/dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/28.0.12916984" >> "$GITHUB_ENV"
+          echo "NDK ready: $ANDROID_HOME/ndk/28.0.12916984"
           ls "$ANDROID_HOME" | head
-          if [ -n "${ANDROID_NDK_HOME:-}" ] && [ -d "${ANDROID_NDK_HOME}" ]; then
-            echo "NDK preinstalled: $ANDROID_NDK_HOME"
-          elif [ -n "${ANDROID_NDK_ROOT:-}" ] && [ -d "${ANDROID_NDK_ROOT:-}" ]; then
-            echo "NDK preinstalled: $ANDROID_NDK_ROOT"
-          else
-            ls "$ANDROID_HOME/ndk" 2>/dev/null || echo "No NDK found - build step will install via sdkmanager"
-          fi
 
       - name: Download prebuilt ollama binary (binary_url)
         if: ${{ github.event.inputs.binary_url != '' }}
