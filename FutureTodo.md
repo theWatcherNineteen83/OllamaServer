@@ -68,30 +68,31 @@ cmake --build build-android --target llama-server llama-quantize -j"$(nproc)"
 > überspringen) und den Patch im Repo dokumentieren. Vulkan-/SPIRV-SDK-Pfade sind nur für
 > Desktop relevant — `-DGGML_VULKAN=OFF` vermeidet sie.
 
-### 0.3 Go-Binary — **CGO_ENABLED=0** (kein NDK-Clang nötig)
+### 0.3 Go-Binary — **CGO_ENABLED=1** + NDK-Clang (cgo ist Pflicht)
 
-**Erkenntnis aus der Quellanalyse:** Bei `CGO_ENABLED=0` greift
-`discover/native_probe_linux_nocgo.go` und liefert
-`errors.New("native GPU discovery requires cgo on Linux")` — d.h. ein Linux-Build
-**ohne** cgo ist vom Projekt vorgesehen. CPU-only braucht keine cgo-GPU-Discovery.
-Damit entfällt der NDK-Clang für den Go-Teil komplett; das Binary ist statisch (pure Go)
-und hat keine bionic-Link-Abhängigkeit.
+**❌ Korrektur (CI-Run 35467876104):** Der urspruengliche Ansatz `CGO_ENABLED=0`
+faellt durch. Fehler: `mlx/nn.go: undefined: Array`, `mlx/act.go: undefined: Compile1`,
+`undefined: Shapeless`.
+
+**Ursache:** Das Paket `mlx` wird **auch unter Linux** kompiliert — `server/images.go:27`
+importiert es plattformunabhaengig. Die Definitionen (`Array`, `Shapeless`, `Compile1`)
+liegen in cgo-Dateien **ohne** Build-Tag (`mlx/array.go`, `mlx/dtype.go`: `import "C"`,
+`#include "generated.h"`). Mit `CGO_ENABLED=0` schliesst der Compiler cgo-Dateien aus →
+undefinierte Symbole. Die Nicht-Darwin-Unterstuetzung laeuft ueber `mlx/dynamic_other.go`
+(`//go:build !darwin`, dlopen statt Linken) — cgo ist also der vorgesehene Linux-Pfad.
 
 ```bash
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
+TC="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin"
+CC="$TC/aarch64-linux-android28-clang" \
+CXX="$TC/aarch64-linux-android28-clang++" \
+CGO_ENABLED=1 GOOS=linux GOARCH=arm64 \
 go build -trimpath -o ollama \
   -ldflags "-s -w -X github.com/ollama/ollama/version.Version=<ref>" .
 ```
 
-(Verifiziert: `version/version.go` → `var Version string`, Modulpfad
-`github.com/ollama/ollama`.)
-
-**Fallbacks, nur falls der Gerätetest scheitert:**
-- (a) `CGO_ENABLED=1` + NDK-Bionic-Clang (`aarch64-linux-android28-clang`) — nötig
-  erst, wenn cgo-Funktionen (GPU-Discovery via dlopen) gebraucht werden.
-- (b) `GOOS=android`: erfordert Build-Tag-Patches (`//go:build linux` →
-  `linux || android`) in `readline/term_linux.go`, `discover/native_probe_linux.go`,
-  `discover/native_probe_linux_nocgo.go`.
+**Fallback:** `GOOS=android` erfordert Build-Tag-Patches (`//go:build linux` →
+`linux || android`) in `readline/term_linux.go`, `discover/native_probe_linux.go`,
+`discover/native_probe_linux_nocgo.go`.
 
 ### 0.4 Payload zusammensetzen
 
@@ -327,6 +328,29 @@ nicht nutzbar (QNN nur Snapdragon, kein Android-NPU-Pfad in Ollama).
 **Revision-Trigger:** Sobald ein Gerät mit aktuellem Adreno/Immortalis und aktuellen
 Treibern als Testgerät da ist, lohnt ein erneuter Blick (Vulkan dann als Option,
 nie als Default).
+
+### Gerätetest-Umgebung (verifiziert 2026-09-19)
+
+- **adb läuft auf miniedi**, nicht auf kali:
+  `ssh prometheus@miniedi 'adb devices'` →
+  `22448caa2a027ece  device  product:starltexx model:SM_G960F device:starlte`
+- Android **10**, `ro.product.cpu.abi=arm64-v8a`, RAM 3,5 GB (≈1,5 GB frei)
+- **⚠️ Blocker: `/data` ist zu 100 % voll** (16 GB, **22 MB frei**).
+  Ein Exec-Test von der microSD (`/storage/B3CF-1EF3`, 14 GB frei) schlägt fehl:
+  `can't execute: Permission denied` (FUSE/noexec) → der Payload kann **nicht** von der
+  SD-Karte laufen. Für Spike und App werden auf `/data` **~1 GB** freier Platz gebraucht.
+  Größter Verbraucher: `/sdcard/Android` (6,3 GB, App-Daten).
+
+### Spike-Protokoll
+
+| Run | Ergebnis |
+|---|---|
+| 35467876104 | Configure (NDK-Toolchain) ✓ · Build `llama-server` ✓ · Install ✓ · Go-Build ✗ (`CGO_ENABLED=0`) |
+| 35468281191 | läuft mit `CGO_ENABLED=1` + NDK-Clang |
+
+**Wichtigster Befund:** Der native Payload (llama-server + ggml-Libs) lässt sich per
+NDK-Cross-Compile **für Android arm64 bauen** — das größte Risiko des Projekts ist damit
+adressiert.
 
 ---
 
