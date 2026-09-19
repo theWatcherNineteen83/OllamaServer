@@ -74,11 +74,14 @@ jobs:
           echo "--- install tree ---"
           find payload -type f | sort
 
-      - name: Build ollama (Go, CGO off)
+      - name: Build ollama (Go, CGO on, NDK clang)
         working-directory: ollama-src
         run: |
+          TC="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin"
           mkdir -p ../payload/bin
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
+          CC="$TC/aarch64-linux-android28-clang" \
+          CXX="$TC/aarch64-linux-android28-clang++" \
+          CGO_ENABLED=1 GOOS=linux GOARCH=arm64 \
             go build -trimpath -o ../payload/bin/ollama \
             -ldflags "-s -w -X github.com/ollama/ollama/version.Version=${{ inputs.ollama_ref }}" .
           file ../payload/bin/ollama || true
