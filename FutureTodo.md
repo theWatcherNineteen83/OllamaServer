@@ -3,6 +3,7 @@
 > Planungsstand: 2026-09-19 · Grundlage: [`UPGRADE_v0.34_ANALYSIS.md`](UPGRADE_v0.34_ANALYSIS.md)
 > Aktuell gebundelt: **v0.24.0** (letzte Single-Binary-Version) · Ziel: **v0.34.2+**
 > Geschätzter Gesamtaufwand: **~2–4 Arbeitstage**
+> **Phase-0-Spike: [`SPIKE_RESULTS.md`](SPIKE_RESULTS.md)** — Payload baut ✅, Gerätetest offen (Speicher-Blocker)
 
 ---
 
@@ -215,6 +216,11 @@ File(binDir, "ollama").setExecutable(true, false)
 File(binDir, "lib/ollama/llama-server").setExecutable(true, false)
 File(binDir, "lib/ollama/llama-quantize").setExecutable(true, false) // falls vorhanden
 ```
+
+> **Wichtig (Spike-Befund):** `bin/ollama` hat `libc++_shared.so` als NEEDED-Eintrag.
+> Ohne diese Bibliothek startet das Binary nicht. Sie muss aus dem NDK-Sysroot
+> (`toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/`)
+> mit in den Payload — Details: [`SPIKE_RESULTS.md`](SPIKE_RESULTS.md), Abschnitt 3.
 
 ### 2.3 Startlogik
 
