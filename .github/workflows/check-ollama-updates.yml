@@ -15,43 +15,64 @@ jobs:
     steps:
       - name: Check latest Ollama release
         id: ollama
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          LATEST=$(curl -s https://api.github.com/repos/ollama/ollama/releases/latest | python3 -c "import json,sys; print(json.load(sys.stdin)['tag_name'])")
-          echo "latest=${LATEST}" >> $GITHUB_OUTPUT
-          echo "Latest Ollama: ${LATEST}"
+          LATEST=""
+          for i in 1 2 3; do
+            LATEST=$(curl -sf -H "Authorization: Bearer $GH_TOKEN" \
+              https://api.github.com/repos/ollama/ollama/releases/latest \
+              | python3 -c "import json,sys; print(json.load(sys.stdin).get('tag_name',''))" 2>/dev/null || echo "")
+            [ -n "$LATEST" ] && break
+            echo "Attempt $i failed (rate limit or API error), retrying in 30s..."
+            sleep 30
+          done
+          if [ -z "$LATEST" ]; then
+            echo "::error::Could not fetch latest ollama release after 3 attempts"
+            exit 1
+          fi
+          echo "latest=${LATEST}" >> "$GITHUB_OUTPUT"
+          # Newest version buildable with the single-binary Android approach.
+          # Ollama >= v0.30 switched to CMake + external llama-server payload,
+          # which needs an app rework before it can be bundled here.
+          COMPATIBLE="v0.24.0"
+          echo "compatible=${COMPATIBLE}" >> "$GITHUB_OUTPUT"
+          echo "Latest Ollama release: ${LATEST}"
+          echo "Max single-binary compatible: ${COMPATIBLE}"
 
       - name: Read our tracked version
         id: ours
         run: |
           curl -s -o /tmp/version.txt https://raw.githubusercontent.com/theWatcherNineteen83/OllamaServer/master/android/app/src/main/assets/arm64-v8a/version.txt
-          OUR_VERSION="v$(cat /tmp/version.txt | tr -d '\n\r ')"
-          echo "ours=${OUR_VERSION}" >> $GITHUB_OUTPUT
+          OUR_VERSION="v$(tr -d '\n\r ' < /tmp/version.txt)"
+          echo "ours=${OUR_VERSION}" >> "$GITHUB_OUTPUT"
           echo "Our version: ${OUR_VERSION}"
 
-      - name: Create issue if update available
-        if: steps.ollama.outputs.latest != steps.ours.outputs.ours
+      - name: Create issue if compatible update available
+        if: steps.ollama.outputs.compatible != steps.ours.outputs.ours
         uses: actions/github-script@v8
         with:
           script: |
             const latest = '${{ steps.ollama.outputs.latest }}';
+            const compatible = '${{ steps.ollama.outputs.compatible }}';
             const ours = '${{ steps.ours.outputs.ours }}';
-            
+
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               labels: ['ollama-update'],
               state: 'open'
             });
-            
+
             if (issues.length === 0) {
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title: `Ollama ${latest} available (bundled: ${ours})`,
-                body: `New Ollama release available.\n\n- **Bundled:** ${ours}\n- **Latest:** ${latest}\n- **Release:** https://github.com/ollama/ollama/releases/tag/${latest}\n\n## TODO\n1. Compile binary: \`./build_ollama_android.sh ${latest}\`\n2. Update \`version.txt\`\n3. Build APK and create release`,
+                title: `Ollama ${compatible} available (bundled: ${ours})`,
+                body: `New single-binary-compatible Ollama release available.\n\n- **Bundled:** ${ours}\n- **Max compatible:** ${compatible}\n- **Latest upstream:** ${latest} (⚠️ v0.30+ uses a new CMake/llama-server architecture and needs an app rework — do NOT bundle directly)\n\n## TODO\n1. Trigger the **Build Android APK** workflow (workflow_dispatch) with \`ollama_version=${compatible}\` — CI cross-compiles the binary and builds the APK, or\n2. Compile locally: \`./build_ollama_android.sh ${compatible}\`, commit binary + \`version.txt\`, push a tag.`,
                 labels: ['ollama-update']
               });
-              console.log('Issue created for ' + latest);
+              console.log('Issue created for ' + compatible);
             } else {
-              console.log('Issue already exists');
+              console.log('Open ollama-update issue already exists, skipping');
             }

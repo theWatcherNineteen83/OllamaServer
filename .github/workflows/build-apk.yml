@@ -6,24 +6,45 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
+      ollama_version:
+        description: 'Ollama version to bundle (e.g. v0.24.0). Empty = version from assets/version.txt'
+        required: false
+        default: ''
       binary_url:
-        description: 'URL to pre-compiled ollama binary (arm64-v8a)'
+        description: 'URL to pre-compiled ollama binary (arm64-v8a) - skips source build'
         required: false
         default: ''
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Determine Ollama version
+        id: ver
+        run: |
+          if [ -n "${{ github.event.inputs.ollama_version }}" ]; then
+            V="${{ github.event.inputs.ollama_version }}"
+          else
+            V="v$(tr -d '\n\r ' < android/app/src/main/assets/arm64-v8a/version.txt)"
+          fi
+          echo "ollama_version=${V}" >> "$GITHUB_OUTPUT"
+          echo "Ollama version to bundle: ${V}"
+
       - name: Set up Node 18
         uses: actions/setup-node@v4
         with:
           node-version: 18
+
+      - name: Set up Go 1.26
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -34,29 +55,71 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Download ollama binary (if not in assets)
+      - name: Download prebuilt ollama binary (binary_url)
         if: ${{ github.event.inputs.binary_url != '' }}
         run: |
+          mkdir -p android/app/src/main/assets/arm64-v8a
           curl -L "${{ github.event.inputs.binary_url }}" \
             -o android/app/src/main/assets/arm64-v8a/ollama
           chmod +x android/app/src/main/assets/arm64-v8a/ollama
 
+      - name: Build ollama for Android arm64-v8a (NDK cross-compile)
+        if: ${{ github.event.inputs.binary_url == '' }}
+        run: |
+          set -euo pipefail
+          V="${{ steps.ver.outputs.ollama_version }}"
+          NDK="${ANDROID_NDK_HOME:-${ANDROID_NDK_ROOT:-}}"
+          if [ -z "$NDK" ] || [ ! -d "$NDK" ]; then
+            echo "NDK not preinstalled on runner, installing via sdkmanager..."
+            yes | sdkmanager --install "ndk;27.0.12077973" >/dev/null
+            NDK="$ANDROID_HOME/ndk/27.0.12077973"
+          fi
+          TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          [ -d "$TOOLCHAIN" ] || { echo "ERROR: NDK toolchain not found at $TOOLCHAIN"; exit 1; }
+          echo "Using NDK: $NDK"
+
+          git clone --depth 1 --branch "$V" https://github.com/ollama/ollama.git /tmp/ollama-src
+          cd /tmp/ollama-src
+
+          # Patch CGO: Android (bionic) integrates librt/libpthread into libc.
+          # Go's CGO matches both "linux" and "android" on GOOS=android,
+          # so exclude android from the linux LDFLAGS to avoid -lrt -lpthread.
+          GGML="ml/backend/ggml/ggml.go"
+          if [ -f "$GGML" ] && grep -q 'cgo linux LDFLAGS: -lrt -lpthread' "$GGML"; then
+            sed -i 's|#cgo linux LDFLAGS: -lrt -lpthread -ldl -lstdc++ -lm|#cgo linux,!android LDFLAGS: -lrt -lpthread -ldl -lstdc++ -lm\n// #cgo android LDFLAGS: -ldl -lstdc++ -lm|' "$GGML"
+            echo "Applied bionic CGO patch to $GGML"
+          else
+            echo "WARNING: known cgo LDFLAGS line not found in $GGML - building unpatched."
+            echo "         Ollama >= v0.30 uses a new CMake/llama-server architecture that is"
+            echo "         NOT compatible with this single-binary Android build. Max supported: v0.24.0."
+          fi
+
+          export CC="$TOOLCHAIN/aarch64-linux-android34-clang"
+          export CXX="$TOOLCHAIN/aarch64-linux-android34-clang++"
+          export GOOS=android
+          export GOARCH=arm64
+          export CGO_ENABLED=1
+          export CGO_CFLAGS="-target aarch64-linux-android34"
+          export CGO_LDFLAGS="-target aarch64-linux-android34"
+
+          go build -ldflags="-s -w" -o ollama .
+
+          ASSETS="$GITHUB_WORKSPACE/android/app/src/main/assets/arm64-v8a"
+          mkdir -p "$ASSETS"
+          cp ollama "$ASSETS/ollama"
+          chmod +x "$ASSETS/ollama"
+          echo "${V#v}" > "$ASSETS/version.txt"
+          echo "Built ollama $V for android/arm64: $(du -h "$ASSETS/ollama" | cut -f1)"
+
       - name: Verify ollama binary exists
         run: |
-          if [ ! -f android/app/src/main/assets/arm64-v8a/ollama ]; then
-            echo "⚠️  ollama binary not found! Skipping APK build."
-            echo "Either commit the binary to assets/ or provide binary_url in workflow_dispatch."
-            echo "Use build_ollama_android.sh locally to compile it."
-            echo "SKIP_BUILD=true" >> $GITHUB_ENV
-          else
-            echo "✅ ollama binary: $(du -h android/app/src/main/assets/arm64-v8a/ollama | cut -f1)"
-          fi
+          test -f android/app/src/main/assets/arm64-v8a/ollama || { echo "ERROR: no ollama binary in assets"; exit 1; }
+          du -h android/app/src/main/assets/arm64-v8a/ollama
 
       - name: Install npm dependencies
         run: npm install
 
       - name: Build Android APK (release)
-        if: env.SKIP_BUILD != 'true'
         run: |
           cd android
           chmod +x gradlew
@@ -68,9 +131,9 @@ jobs:
             -PMYAPP_RELEASE_KEY_PASSWORD=android
 
       - name: Rename APK
-        if: env.SKIP_BUILD != 'true'
         run: |
           VERSION=$(cat package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[",]//g' | tr -d ' ')
+          OLLAMA_V="${{ steps.ver.outputs.ollama_version }}"
           # Find the APK (output path may vary with Gradle/AGP version)
           APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" 2>/dev/null | head -1)
           if [ -z "$APK_PATH" ]; then
@@ -78,18 +141,17 @@ jobs:
             find android/app/build -name "*.apk" 2>/dev/null || echo "No APK files anywhere in build dir"
             exit 1
           fi
-          cp "$APK_PATH" "OllamaServer-v${VERSION}.apk"
-          echo "Copied: $APK_PATH -> OllamaServer-v${VERSION}.apk"
+          cp "$APK_PATH" "OllamaServer-v${VERSION}-ollama${OLLAMA_V}.apk"
+          echo "Copied: $APK_PATH -> OllamaServer-v${VERSION}-ollama${OLLAMA_V}.apk"
 
       - name: Upload APK artifact
-        if: env.SKIP_BUILD != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: OllamaServer-APK
           path: OllamaServer-*.apk
 
       - name: Attach to GitHub Release
-        if: env.SKIP_BUILD != 'true' && startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: OllamaServer-*.apk

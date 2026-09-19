@@ -78,3 +78,6 @@ yarn-error.log
 dist/
 web-build/
 /android/app/release/
+
+# Cross-compiled ollama binaries in assets (built by CI or build_ollama_android.sh)
+android/app/src/main/assets/*/ollama

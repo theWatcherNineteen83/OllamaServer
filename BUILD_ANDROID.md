@@ -8,8 +8,14 @@ The official Ollama releases only provide Linux (glibc) binaries which are
 ## Prerequisites
 
 - Android NDK (r26 or later recommended)
-- Go 1.22+ (matching the ollama source requirements)
+- Go 1.26+ (matching the ollama source requirements)
 - Git
+
+> **CI shortcut:** You do not have to build locally. The `Build Android APK`
+> GitHub Actions workflow cross-compiles the ollama binary in CI (NDK + Go on
+> the runner) and produces the APK. Trigger it via *Actions → Build Android
+> APK → Run workflow* (optionally with an `ollama_version`), or push a `v*` tag.
+> The committed binary in `assets/` is optional and gitignored.
 
 ```bash
 # Install Android NDK (example path)
@@ -26,7 +32,7 @@ go version  # should be ≥1.22
 ```bash
 git clone https://github.com/ollama/ollama.git
 cd ollama
-git checkout v0.23.2  # or latest release tag
+git checkout v0.24.0  # LAST single-binary compatible release, see below
 ```
 
 ### 2. Build for Android arm64-v8a
@@ -58,6 +64,15 @@ After building, update:
 
 The app compares the version.txt against the previously installed binary
 and automatically replaces it on first launch when the version changes.
+
+## Version Compatibility
+
+- **v0.24.0 is the newest version that builds as a single self-contained
+  binary** with the steps above.
+- Ollama **v0.30+** switched to a CMake build with an external `llama-server`
+  executable and dlopen'ed `lib/ollama/*.so` payloads. Bundling those releases
+  requires app changes (extract binary + native libs to app storage, set
+  library paths) and is NOT supported by this build script yet.
 
 ## Notes
 

@@ -13,11 +13,16 @@
 #   BUILD_X86=1 ./build_ollama_android.sh  # also build x86_64 for emulator
 #
 # Example:
-#   ./build_ollama_android.sh v0.23.2
+#   ./build_ollama_android.sh v0.24.0
+#
+# NOTE: v0.24.0 is the LAST version buildable as a single self-contained
+# binary. Ollama >= v0.30 switched to a CMake + external llama-server
+# architecture that requires bundling native payloads - not supported yet.
+# Go 1.26+ is required (see ollama go.mod).
 
 set -euo pipefail
 
-OLLAMA_VERSION="${1:-v0.23.2}"
+OLLAMA_VERSION="${1:-v0.24.0}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build_tmp"
 ASSETS_DIR="$SCRIPT_DIR/android/app/src/main/assets/arm64-v8a"
