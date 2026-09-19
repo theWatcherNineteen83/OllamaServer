@@ -52,8 +52,20 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Verify preinstalled Android SDK/NDK
+        run: |
+          echo "ANDROID_HOME=${ANDROID_HOME:-unset}"
+          echo "ANDROID_NDK_HOME=${ANDROID_NDK_HOME:-unset}"
+          echo "ANDROID_NDK_ROOT=${ANDROID_NDK_ROOT:-unset}"
+          [ -n "${ANDROID_HOME:-}" ] || { echo "ERROR: no ANDROID_HOME on runner"; exit 1; }
+          ls "$ANDROID_HOME" | head
+          if [ -n "${ANDROID_NDK_HOME:-}" ] && [ -d "${ANDROID_NDK_HOME}" ]; then
+            echo "NDK preinstalled: $ANDROID_NDK_HOME"
+          elif [ -n "${ANDROID_NDK_ROOT:-}" ] && [ -d "${ANDROID_NDK_ROOT:-}" ]; then
+            echo "NDK preinstalled: $ANDROID_NDK_ROOT"
+          else
+            ls "$ANDROID_HOME/ndk" 2>/dev/null || echo "No NDK found - build step will install via sdkmanager"
+          fi
 
       - name: Download prebuilt ollama binary (binary_url)
         if: ${{ github.event.inputs.binary_url != '' }}
@@ -70,8 +82,12 @@ jobs:
           V="${{ steps.ver.outputs.ollama_version }}"
           NDK="${ANDROID_NDK_HOME:-${ANDROID_NDK_ROOT:-}}"
           if [ -z "$NDK" ] || [ ! -d "$NDK" ]; then
+            # Fall back to any NDK under $ANDROID_HOME/ndk, else install one
+            NDK=$(ls -d "$ANDROID_HOME"/ndk/* 2>/dev/null | sort -V | tail -1 || true)
+          fi
+          if [ -z "$NDK" ] || [ ! -d "$NDK" ]; then
             echo "NDK not preinstalled on runner, installing via sdkmanager..."
-            yes | sdkmanager --install "ndk;27.0.12077973" >/dev/null
+            yes | "$ANDROID_HOME"/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973" >/dev/null
             NDK="$ANDROID_HOME/ndk/27.0.12077973"
           fi
           TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
