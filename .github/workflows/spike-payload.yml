@@ -74,19 +74,27 @@ jobs:
           echo "--- install tree ---"
           find payload -type f | sort
 
-      # netgo: Go's cgo DNS resolver (net/cgo_resnew.go) does not compile against the
-      # NDK headers - socklen_t is uint32 there, size_t is unsigned long, which trips
-      # "cannot use ... as _Ctype_size_t value". The netgo build tag excludes the whole
-      # !netgo cgo resolver set, so the pure-Go resolver is used instead.
+      # Build notes (both fixes are required for the NDK cross build):
+      # * netgo  - Go's cgo DNS resolver (net/cgo_resnew.go) does not compile against the
+      #            NDK headers: socklen_t is uint32 there, size_t is unsigned long, which
+      #            trips "cannot use ... as _Ctype_size_t value". The tag drops the whole
+      #            !netgo cgo resolver set, so the pure-Go resolver is used instead.
+      # * PIE    - Android only executes PIE binaries (API 21+), so built with
+      #            -buildmode=pie instead of Go's default ET_EXEC (-no-pie).
+      # * pthread stub - bionic merged pthread into libc, there is no libpthread.so, but
+      #            mattn/go-sqlite3 emits a bare "-lpthread" in its LDFLAGS. An empty
+      #            archive on the search path satisfies ld.lld.
       - name: Build ollama (Go, CGO on, NDK clang)
         working-directory: ollama-src
         run: |
           TC="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          mkdir -p ../payload/bin
+          mkdir -p ../payload/bin "$GITHUB_WORKSPACE/ndk-stubs"
+          "$TC/llvm-ar" rcs "$GITHUB_WORKSPACE/ndk-stubs/libpthread.a"
           CC="$TC/aarch64-linux-android28-clang" \
           CXX="$TC/aarch64-linux-android28-clang++" \
           CGO_ENABLED=1 GOOS=linux GOARCH=arm64 \
-            go build -trimpath -tags netgo -o ../payload/bin/ollama \
+          CGO_LDFLAGS="-L$GITHUB_WORKSPACE/ndk-stubs" \
+            go build -trimpath -tags netgo -buildmode=pie -o ../payload/bin/ollama \
             -ldflags "-s -w -X github.com/ollama/ollama/version.Version=${{ inputs.ollama_ref }}" .
           file ../payload/bin/ollama || true
 
